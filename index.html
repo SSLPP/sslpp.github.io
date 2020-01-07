@@ -86,13 +86,13 @@
         <script>
             var mymap;
             var lyrOSM;
-            var lyrWatercolor;
             var lyrTopo;
             var lyrImagery;
             var lyrOutdoors;
             var lyrEagleNests;
             var lyrRaptorNests;
             var lyrMarkerCluster;
+            var lyrRoadShapeFile;
             var mrkCurrentLocation;
             var fgpDrawnItems;
             var ctlAttribute;
@@ -108,21 +108,21 @@
             var objOverlays;
             
             $(document).ready(function(){
-                
-                mymap = L.map('mapdiv', {center:[19.4, -99.2], zoom:13, zoomControl:false, attributionControl:false});
+                // adding base maps
+                mymap = L.map('mapdiv', {center:[29.8202, -95.3487], zoom:13, zoomControl:false, attributionControl:false});
                 lyrOSM = L.tileLayer.provider('OpenStreetMap.Mapnik');
                 lyrTopo = L.tileLayer.provider('OpenTopoMap');
-                lyrImagery = L.tileLayer.provider('Esri.WorldImagery');
-                lyrOutdoors = L.tileLayer.provider('Thunderforest.Outdoors');
-                lyrWatercolor = L.tileLayer.provider('Stamen.Watercolor');
+                lyrImagery = L.tileLayer.provider('Esri.WorldStreetMap');
+                lyrOutdoors = L.tileLayer.provider('Thunderforest.Outdoors');                          
+                
+                // adding base map openstreet map
                 mymap.addLayer(lyrOSM);
                 
                 objBasemaps = {
                     "Open Street Maps": lyrOSM,
+                    "ESRI Street Map":lyrImagery,
                     "Topo Map":lyrTopo,
-                    "Imagery":lyrImagery,
                     "Outdoors":lyrOutdoors,
-                    "Watercolor":lyrWatercolor
                 };
                 
                 fgpDrawnItems = new L.FeatureGroup();
@@ -132,6 +132,21 @@
                 lyrEagleNests.on('data:loaded', function(){
                     mymap.fitBounds(lyrEagleNests.getBounds());
                 });
+                
+                
+//                lyrClientLines = L.geoJSON.ajax('data/roadmap.geojson', {style:styleRoadsByFlooding, onEachFeature:processClientLinears}).addTo(mymap);
+
+//                lyrRoadShapeFile = L.geoJSON.ajax('data/roadmap.geojson', {style:styleRoadsByFlooding, onEachFeature:processClientLinears}).addTo(mymap);
+                lyrRoadShapeFile = L.geoJSON.ajax('data/roadmap.geojson').addTo(mymap);
+                lyrRoadShapeFile.on('data:loaded', function(){
+                    mymap.fitBounds(lyrRoadShapeFile.getBounds());
+                });
+//                lyrRoadShapeFile = L.geoJSON.ajax('data/harris_county.geojson', {pointToLayer:returnRoadMarker}).addTo(mymap);
+
+//                \data\harris_county.geojson
+//                
+//                C:\xampp\htdocs\ssswift_001\data\roadmap.geojson"
+                
                 
                 lyrMarkerCluster = L.markerClusterGroup();
                 lyrRaptorNests = L.geoJSON.ajax('data/wildlife_raptor.geojson', {pointToLayer:returnRaptorMarker});
@@ -143,43 +158,50 @@
                 objOverlays = {
                     "Eagle Nest":lyrEagleNests,
                     "Raptor Nest":lyrMarkerCluster,
-                    "Drawn Items":fgpDrawnItems
+                    "Drawn Items":fgpDrawnItems,
+                    "Road Network":lyrRoadShapeFile
                 };
                 
                 ctlLayers = L.control.layers(objBasemaps, objOverlays).addTo(mymap);
                 
+                
+                // sidebars                
                 ctlSidebar = L.control.sidebar('side-bar').addTo(mymap);
                 
                 ctlEasybutton = L.easyButton('glyphicon-transfer', function(){
                    ctlSidebar.toggle(); 
                 }).addTo(mymap);
                 
+                // adding attribution
                 ctlAttribute = L.control.attribution().addTo(mymap);
                 ctlAttribute.addAttribution('OSM');
-                ctlAttribute.addAttribution('&copy; <a href="http://millermountain.com">Miller Mountain LLC</a>');
-                
+                ctlAttribute.addAttribution('&copy; <a href="https://padgett.rice.edu/">Padgett Research Group, Rice University</a>');
+                // scale of the map
                 ctlScale = L.control.scale({position:'bottomleft', metric:false, maxWidth:200}).addTo(mymap);
-
+                // current location of mouse point
                 ctlMouseposition = L.control.mousePosition().addTo(mymap);
                 
                 ctlStyle = L.control.styleEditor({position:'topright'}).addTo(mymap);
                 
-                ctlDraw = new L.Control.Draw({
-                    draw:{
-                        circle:false,
-                        rectangle:false,
-                    },
-                    edit:{
-                        featureGroup:fgpDrawnItems
-                    }
-                });
-                ctlDraw.addTo(mymap);
+//                ctlDraw = new L.Control.Draw({
+//                    draw:{
+//                        circle:false,
+//                        rectangle:false,
+//                    },
+//                    edit:{
+//                        featureGroup:fgpDrawnItems
+//                    }
+//                });
+//                ctlDraw.addTo(mymap);
                 ctlMeasure = L.control.polylineMeasure().addTo(mymap);
                 
-                mymap.on('draw:created', function(e){
-                    fgpDrawnItems.addLayer(e.layer);
-                });
+//                mymap.on('draw:created', function(e){
+//                    fgpDrawnItems.addLayer(e.layer);
+//                });
                 
+                                
+                
+                // Handling your location
                 mymap.on('locationfound', function(e) {
                     console.log(e);
                     if (mrkCurrentLocation) {
@@ -205,6 +227,7 @@
             }
             
             function returnEagleMarker(json, latlng){
+                // color formating 
                 var att = json.properties;
                 if (att.status=='ACTIVE NEST') {
                     var clrNest = 'deeppink';
@@ -214,7 +237,39 @@
                 return L.circle(latlng, {radius:804, color:clrNest,fillColor:'green', fillOpacity:0.5}).bindTooltip("<h4>Eagle Nest: "+att.nest_id+"</h4>Status: "+att.status);
             }
             
+            function returnRoadMarker(json, latlng){
+                // color formating 
+                var att = json.properties;
+                if (att.flood_cond==1) {
+                    var clrNest = 'red';
+                } else {
+                    var clrNest = 'green';
+                }
+                return L.circle(latlng, {radius:804, color:clrNest,fillColor:'green', fillOpacity:0.5}).bindTooltip("<h4>Eagle Nest: "+att.nest_id+"</h4>Status: "+att.status);
+            }
+            
+            /// This function will return the road color coding scheme
+//            function styleRoadsByFlooding(json) {
+//                var att = json.properties;
+//                if (att.flood_cond=0) {
+//                    return {color:'green'};
+//                } else if (att.flood_cond=2) { 
+//                    return {color:'grey'};
+//                }else {
+//                    return {color:'red'};
+//                }
+//             }
+            /// Defining the tooltip
+            function processClientLinears(json, lyr) {
+                var att = json.properties;
+                lyr.bindTooltip("<h4>Flooded: "+ att.flood_cond+"</h4>Probability of flooding: "+att.prob_fldg);
+                arProjectIDs.push(att.Project.toString());
+            }
+        
+            
+            <!-- Function to format the map markers-->
             function returnRaptorMarker(json, latlng){
+                // function to provide marker formatiing
                 var att = json.properties;
                 switch (att.recentspecies) {
                     case 'Red-tail Hawk':
