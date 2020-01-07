@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Webmap 201</title>
+        <title>SSSWIFT</title>
         <link rel="stylesheet" href="src/leaflet.css">
         <link rel="stylesheet" href="src/css/bootstrap.css">
         <link rel="stylesheet" href="src/plugins/L.Control.MousePosition.css">
@@ -16,6 +16,7 @@
         <link rel="stylesheet" href="src/plugins/leaflet-mapkey/L.Icon.Mapkey.css">
         <link rel="stylesheet" href="src/plugins/MarkerCluster.css">
         <link rel="stylesheet" href="src/plugins/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="src/jquery-ui.min.css">
         
         <script src="src/leaflet-src.js"></script>
         <script src="src/jquery-3.2.0.min.js"></script>
@@ -31,6 +32,8 @@
         <script src="src/plugins/leaflet.awesome-markers.min.js"></script>
         <script src="src/plugins/leaflet-mapkey/L.Icon.Mapkey.js"></script>
         <script src="src/plugins/leaflet.markercluster.js"></script>
+        <script src="src/jquery-ui.min.js"></script>
+        <script src="http://handygeospatial.github.io/geojsonvt-ksj-site/geojson-vt.js"></script>
         
 <!--    ***************  Begin Leaflet.Draw-->
         
@@ -76,96 +79,59 @@
             #mapdiv {
                 height:100vh;
             }
+
+            .col-xs-12, .col-xs-6, .col-xs-4 {
+                padding:3px;
+            }
+
+            #divssswift {
+/*                background-color: #e6ffff;*/
+            }
+            
+            .errorMsg {
+                padding:0;
+                text-align:center;
+                background-color:darksalmon;
+            }
+            
         </style>
+        
+        
+        
+        
     </head>
     <body>
         <div id="side-bar" class="col-md-3">
-            <button id='btnLocate' class='btn btn-primary btn-block'>Locate</button>
+            <div id="divssswift" class="col-xs-12">
+                <div id="swifttitile" class="text-center col-xs-12">
+                    <h4 id="lbswifttitile">SSSWIFT</h4>
+                    <p>  version 0.01.01_06_20 </p>
+                </div>                
+            </div>
+            <button id='btnLocate' class='btn btn-primary btn-block'>Got to your location</button><br>
+            <p style="background-color:red; color:white":>Flooded roads are marked in red</p>
+            <p style="background-color:green; color:white">Open roads are marked in green</p>
+            <p style="background-color:grey; color:white">Roads with unknown status are marked in grey</p>
         </div>
         <div id="mapdiv" class="col-md-12"></div>
         <script>
             var mymap;
             var lyrOSM;
+            var lyrWatercolor;
             var lyrTopo;
             var lyrImagery;
             var lyrOutdoors;
-            var lyrEagleNests;
-            var lyrRaptorNests;
-            var lyrMarkerCluster;
             var lyrRoadShapeFile;
+            var lyrRoadShapeFile_harrisCounty;
             var mrkCurrentLocation;
-            var fgpDrawnItems;
-            var ctlAttribute;
-            var ctlScale;
-            var ctlMouseposition;
-            var ctlMeasure;
-            var ctlEasybutton;
-            var ctlSidebar;
-            var ctlLayers;
-            var ctlDraw;
-            var ctlStyle;
-            var objBasemaps;
-            var objOverlays;
+
             
             $(document).ready(function(){
-                // adding base maps
-                mymap = L.map('mapdiv', {center:[29.8202, -95.3487], zoom:13, zoomControl:false, attributionControl:false});
-                lyrOSM = L.tileLayer.provider('OpenStreetMap.Mapnik');
-                lyrTopo = L.tileLayer.provider('OpenTopoMap');
-                lyrImagery = L.tileLayer.provider('Esri.WorldStreetMap');
-                lyrOutdoors = L.tileLayer.provider('Thunderforest.Outdoors');                          
                 
-                // adding base map openstreet map
-                mymap.addLayer(lyrOSM);
+                //  ********* Map Initialization ****************
                 
-                objBasemaps = {
-                    "Open Street Maps": lyrOSM,
-                    "ESRI Street Map":lyrImagery,
-                    "Topo Map":lyrTopo,
-                    "Outdoors":lyrOutdoors,
-                };
+                mymap = L.map('mapdiv', {center:[40.18, -104.83], zoom:11, attributionControl:false});
                 
-                fgpDrawnItems = new L.FeatureGroup();
-                fgpDrawnItems.addTo(mymap);
-                
-                lyrEagleNests = L.geoJSON.ajax('data/wildlife_eagle.geojson', {pointToLayer:returnEagleMarker}).addTo(mymap);
-                lyrEagleNests.on('data:loaded', function(){
-                    mymap.fitBounds(lyrEagleNests.getBounds());
-                });
-                
-                
-//                lyrClientLines = L.geoJSON.ajax('data/roadmap.geojson', {style:styleRoadsByFlooding, onEachFeature:processClientLinears}).addTo(mymap);
-
-//                lyrRoadShapeFile = L.geoJSON.ajax('data/roadmap.geojson', {style:styleRoadsByFlooding, onEachFeature:processClientLinears}).addTo(mymap);
-                lyrRoadShapeFile = L.geoJSON.ajax('data/roadmap.geojson').addTo(mymap);
-                lyrRoadShapeFile.on('data:loaded', function(){
-                    mymap.fitBounds(lyrRoadShapeFile.getBounds());
-                });
-//                lyrRoadShapeFile = L.geoJSON.ajax('data/harris_county.geojson', {pointToLayer:returnRoadMarker}).addTo(mymap);
-
-//                \data\harris_county.geojson
-//                
-//                C:\xampp\htdocs\ssswift_001\data\roadmap.geojson"
-                
-                
-                lyrMarkerCluster = L.markerClusterGroup();
-                lyrRaptorNests = L.geoJSON.ajax('data/wildlife_raptor.geojson', {pointToLayer:returnRaptorMarker});
-                lyrRaptorNests.on('data:loaded', function(){
-                    lyrMarkerCluster.addLayer(lyrRaptorNests);
-                    lyrMarkerCluster.addTo(mymap);
-                });
-                
-                objOverlays = {
-                    "Eagle Nest":lyrEagleNests,
-                    "Raptor Nest":lyrMarkerCluster,
-                    "Drawn Items":fgpDrawnItems,
-                    "Road Network":lyrRoadShapeFile
-                };
-                
-                ctlLayers = L.control.layers(objBasemaps, objOverlays).addTo(mymap);
-                
-                
-                // sidebars                
                 ctlSidebar = L.control.sidebar('side-bar').addTo(mymap);
                 
                 ctlEasybutton = L.easyButton('glyphicon-transfer', function(){
@@ -176,32 +142,47 @@
                 ctlAttribute = L.control.attribution().addTo(mymap);
                 ctlAttribute.addAttribution('OSM');
                 ctlAttribute.addAttribution('&copy; <a href="https://padgett.rice.edu/">Padgett Research Group, Rice University</a>');
-                // scale of the map
                 ctlScale = L.control.scale({position:'bottomleft', metric:false, maxWidth:200}).addTo(mymap);
-                // current location of mouse point
                 ctlMouseposition = L.control.mousePosition().addTo(mymap);
-                
-                ctlStyle = L.control.styleEditor({position:'topright'}).addTo(mymap);
-                
-//                ctlDraw = new L.Control.Draw({
-//                    draw:{
-//                        circle:false,
-//                        rectangle:false,
-//                    },
-//                    edit:{
-//                        featureGroup:fgpDrawnItems
-//                    }
-//                });
-//                ctlDraw.addTo(mymap);
                 ctlMeasure = L.control.polylineMeasure().addTo(mymap);
                 
-//                mymap.on('draw:created', function(e){
-//                    fgpDrawnItems.addLayer(e.layer);
-//                });
+                //   *********** Layer Initialization **********
                 
-                                
+                lyrOSM = L.tileLayer.provider('OpenStreetMap.Mapnik');
+                lyrTopo = L.tileLayer.provider('OpenTopoMap');
+                lyrImagery = L.tileLayer.provider('Esri.WorldImagery');
+                lyrOutdoors = L.tileLayer.provider('Thunderforest.Outdoors');
+                lyrWatercolor = L.tileLayer.provider('Stamen.Watercolor');
+                mymap.addLayer(lyrOSM);
                 
-                // Handling your location
+                
+
+//                lyrRoadShapeFile_harrisCounty = L.geoJSON.ajax('data/harris_county.geojson', {style:styleRoads, onEachFeature:processRoadStatusLabel}).addTo(mymap);
+                
+                lyrRoadShapeFile = L.geoJSON.ajax('data/roadmap.geojson', {style:styleRoads, onEachFeature:processRoadStatusLabel}).addTo(mymap);
+                lyrRoadShapeFile.on('data:loaded', function(){
+                    mymap.fitBounds(lyrRoadShapeFile.getBounds());
+                });
+                            
+                // ********* Setup Layer Control  ***************
+                
+                objBasemaps = {
+                    "Open Street Maps": lyrOSM,
+                    "Topo Map":lyrTopo,
+                    "Imagery":lyrImagery,
+                    "Outdoors":lyrOutdoors,
+                    "Watercolor":lyrWatercolor
+                };
+                
+                objOverlays = {
+                    "Aldine Area":lyrRoadShapeFile,
+//                    "Harris County":lyrRoadShapeFile_harrisCounty,
+                };
+                
+                ctlLayers = L.control.layers(objBasemaps, objOverlays).addTo(mymap);
+
+                // ************ Location Events **************
+                
                 mymap.on('locationfound', function(e) {
                     console.log(e);
                     if (mrkCurrentLocation) {
@@ -216,87 +197,29 @@
                     alert("Location was not found");
                 })
                 
-                $("#btnLocate").click(function(){
-                    mymap.locate();
-                });
             });
             
-            function LatLngToArrayString(ll) {
-//                console.log(ll);
-                return "["+ll.lat.toFixed(5)+", "+ll.lng.toFixed(5)+"]";
-            }
-            
-            function returnEagleMarker(json, latlng){
-                // color formating 
+            function styleRoads(json) {
                 var att = json.properties;
-                if (att.status=='ACTIVE NEST') {
-                    var clrNest = 'deeppink';
-                } else {
-                    var clrNest = 'green';
+                if (att.flooded=='open') {
+                    return {color:'green'};
+                } else if (att.flooded=='flooded') { 
+                    return {color:'red', dashArray:"5,5"};
+                }else {
+                    return {color:'grey'};
                 }
-                return L.circle(latlng, {radius:804, color:clrNest,fillColor:'green', fillOpacity:0.5}).bindTooltip("<h4>Eagle Nest: "+att.nest_id+"</h4>Status: "+att.status);
-            }
-            
-            function returnRoadMarker(json, latlng){
-                // color formating 
+             }
+
+            function processRoadStatusLabel(json, lyrRoadShapeFile) {
                 var att = json.properties;
-                if (att.flood_cond==1) {
-                    var clrNest = 'red';
-                } else {
-                    var clrNest = 'green';
-                }
-                return L.circle(latlng, {radius:804, color:clrNest,fillColor:'green', fillOpacity:0.5}).bindTooltip("<h4>Eagle Nest: "+att.nest_id+"</h4>Status: "+att.status);
+                lyrRoadShapeFile.bindTooltip("<h4>Road Condition: "+ att.flooded+"</h4>Probability of flooding: "+att.prob_fldg+"<br></h4>Time to recover: Unknown");
             }
-            
-            /// This function will return the road color coding scheme
-//            function styleRoadsByFlooding(json) {
-//                var att = json.properties;
-//                if (att.flood_cond=0) {
-//                    return {color:'green'};
-//                } else if (att.flood_cond=2) { 
-//                    return {color:'grey'};
-//                }else {
-//                    return {color:'red'};
-//                }
-//             }
-            /// Defining the tooltip
-            function processClientLinears(json, lyr) {
-                var att = json.properties;
-                lyr.bindTooltip("<h4>Flooded: "+ att.flood_cond+"</h4>Probability of flooding: "+att.prob_fldg);
-                arProjectIDs.push(att.Project.toString());
-            }
-        
-            
-            <!-- Function to format the map markers-->
-            function returnRaptorMarker(json, latlng){
-                // function to provide marker formatiing
-                var att = json.properties;
-                switch (att.recentspecies) {
-                    case 'Red-tail Hawk':
-                        var radRaptor = 533;
-                        break;
-                    case 'Swainsons Hawk':
-                        var radRaptor = 400;
-                        break;
-                    default:
-                        var radRaptor = 804;
-                        break;
-                }
-                switch (att.recentstatus) {
-                    case 'ACTIVE NEST':
-                        var optRaptor = {radius:radRaptor, color:'deeppink', fillColor:"blue", fillOpacity:0.5};
-                        break;
-                    case 'INACTIVE NEST':
-                        var optRaptor = {radius:radRaptor, color:'blue', fillColor:'blue', fillOpacity:0.5};
-                        break;
-                    case 'FLEDGED NEST':
-                        var optRaptor = {radius:radRaptor, color:'deeppink', fillColor:"blue", fillOpacity:0.5, dashArray:"2,8"};
-                        break;
-                }
-                return L.circle(latlng, optRaptor).bindPopup("<h4>Raptor Nest: "+att.Nest_ID+"</h4>Status: "+att.recentstatus+"<br>Species: "+att.recentspecies+"<br>Last Survey: "+att.lastsurvey);
-                
-            }
-            
+
+            //  *********  jQuery Event Handlers  ************
+            $("#btnLocate").click(function(){
+                mymap.locate();
+            });
+
         </script>
     </body>
 </html>
